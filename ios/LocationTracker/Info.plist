@@ -51,5 +51,17 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+
+	<!-- LOCATION -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We need your location to track your movements</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>We need your location to track your movements even when the app is in background</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>We need your location to track your movements</string>
+	<key>UIBackgroundModes</key>
+	<array>
+	<string>location</string>
+	</array>
 </dict>
 </plist>
