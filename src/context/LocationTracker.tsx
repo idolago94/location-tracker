@@ -23,6 +23,8 @@ export interface TrackerState {
   error: string | undefined;
   refresh(): Promise<void>;
   restart(delay: number): Promise<void>;
+  start(): void;
+  stop(): void
 }
 
 const LocationTrackerContext = createContext<TrackerState | undefined>(
@@ -118,6 +120,47 @@ export function LocationTrackerProvider({ children }: BookingProviderProps) {
       setLocations(rows);
     });
 
+    if (BackgroundService.isRunning()) {
+      setIsTracking(true);
+    }
+    // if (!BackgroundService.isRunning()) {
+    //   startBackgroundTracking({
+    //     onNewLocation: location => {
+    //       setLocations(prev => [location, ...prev]);
+    //     },
+    //     onGetLocationError: err => {
+    //       NotificationService.send({
+    //         title: 'Failed to get location',
+    //         body: err,
+    //       });
+    //     },
+    //   })
+    //     .then(() => {
+    //       setError(undefined);
+    //       setIsTracking(true);
+    //     })
+    //     .catch(err => {
+    //       setError(err.message);
+    //       setIsTracking(false);
+    //     });
+    // } else {
+    //   setIsTracking(true);
+    // }
+
+    // Cleanup on unmount
+    return () => {
+      if (BackgroundService.isRunning()) {
+        BackgroundService.stop();
+      }
+    };
+  }, []);
+
+  const refresh = useCallback(async () => {
+    const rows = await LocationsStorage.getAll();
+    setLocations(rows);
+  }, []);
+
+  const start = useCallback(() => {
     if (!BackgroundService.isRunning()) {
       startBackgroundTracking({
         onNewLocation: location => {
@@ -138,49 +181,24 @@ export function LocationTrackerProvider({ children }: BookingProviderProps) {
           setError(err.message);
           setIsTracking(false);
         });
-    } else {
-      setIsTracking(true);
     }
+  }, []);
 
-    // Cleanup on unmount
-    return () => {
+  const stop = useCallback(() => {
+    BackgroundService.stop().then(() => setIsTracking(false));
+  }, [])
+
+  const restart = useCallback(
+    async (delay: number) => {
       if (BackgroundService.isRunning()) {
-        BackgroundService.stop();
+        await BackgroundService.stop();
+        setTimeout(() => {
+          start();
+        }, delay);
       }
-    };
-  }, []);
-
-  const refresh = useCallback(async () => {
-    const rows = await LocationsStorage.getAll();
-    setLocations(rows);
-  }, []);
-
-  const restart = useCallback(async (delay: number) => {
-    if (BackgroundService.isRunning()) {
-      await BackgroundService.stop();
-      setTimeout(() => {
-        startBackgroundTracking({
-          onNewLocation: location => {
-            setLocations(prev => [location, ...prev]);
-          },
-          onGetLocationError: err => {
-            NotificationService.send({
-              title: 'Failed to get location',
-              body: err,
-            });
-          },
-        })
-          .then(() => {
-            setError(undefined);
-            setIsTracking(true);
-          })
-          .catch(err => {
-            setError(err.message);
-            setIsTracking(false);
-          });
-      }, delay);
-    }
-  }, []);
+    },
+    [start],
+  );
 
   const value: TrackerState = {
     isTracking,
@@ -188,6 +206,8 @@ export function LocationTrackerProvider({ children }: BookingProviderProps) {
     error,
     refresh,
     restart,
+    start,
+    stop,
   };
 
   return (

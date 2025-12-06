@@ -15,7 +15,7 @@ import { useCallback } from 'react';
 
 export default function HomeScreen() {
   const navigation = useNavigation<RootStackNavigationProp>();
-  const { error, isTracking, locations, refresh } = useLocationTracker();
+  const { error, isTracking, locations, refresh, start, stop } = useLocationTracker();
 
   useFocusEffect(
     useCallback(() => {
@@ -51,6 +51,19 @@ export default function HomeScreen() {
         </View>
       )}
 
+      <View style={styles.trackingIndicatorView}>
+        {isTracking ? (
+          <TouchableOpacity style={[styles.trackingIndicatorWrap, styles.trackingColor]} onPress={stop}>
+            <Text style={[styles.indicatorText, styles.trackingColor]}>Tracking...</Text>
+            <Text>Press to stop tracking</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.trackingIndicatorWrap} onPress={start}>
+            <Text style={styles.indicatorText}>Start Tracking</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
       <FlatList
         data={locations}
         keyExtractor={item => item.id.toString()}
@@ -59,9 +72,6 @@ export default function HomeScreen() {
         renderItem={renderItem}
       />
 
-      <Text style={styles.status}>
-        Status: {isTracking ? 'Tracking in background' : 'Not tracking'}
-      </Text>
       <Button
         title="Settings"
         onPress={() => navigation.navigate('Settings')}
@@ -93,10 +103,26 @@ const styles = StyleSheet.create({
   buttonContainer: {
     marginVertical: 16,
   },
-  status: {
-    marginTop: 16,
-    fontSize: 14,
-    fontWeight: '600',
-    paddingHorizontal: 16,
+  trackingIndicatorView: {
+    height: '35%',
+    padding: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  trackingIndicatorWrap: {
+    borderRadius: 999,
+    borderWidth: 2,
+    flex: 1,
+    aspectRatio: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  trackingColor: {
+    borderColor: 'blue',
+    color: 'blue'
+  },
+  indicatorText: {
+    fontWeight: 700,
+    fontSize: 24,
   },
 });
