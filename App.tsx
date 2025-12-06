@@ -15,6 +15,7 @@ import HomeScreen from './src/screens/HomeScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import { RootStackParamList } from './src/navigation/types';
 import { GStyles } from './src/styles/global';
+import LocationScreen from './src/screens/LocationScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -34,6 +35,7 @@ function App() {
                 options={{ headerShown: false }}
               />
               <Stack.Screen name="Settings" component={SettingsScreen} />
+              <Stack.Screen name="Location" component={LocationScreen} />
             </Stack.Navigator>
           </NavigationContainer>
         </SafeAreaView>

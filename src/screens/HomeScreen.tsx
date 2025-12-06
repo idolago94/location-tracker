@@ -1,12 +1,47 @@
-import { useNavigation } from '@react-navigation/native';
-import { useLocationTracker } from '../context/LocationTracker';
-import { Button, FlatList, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { TrackerState, useLocationTracker } from '../context/LocationTracker';
+import {
+  Button,
+  FlatList,
+  ListRenderItem,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { GStyles } from '../styles/global';
 import { RootStackNavigationProp } from '../navigation/types';
+import { useCallback } from 'react';
 
 export default function HomeScreen() {
   const navigation = useNavigation<RootStackNavigationProp>();
   const { error, isTracking, locations, refresh } = useLocationTracker();
+
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh]),
+  );
+
+  const renderItem: ListRenderItem<TrackerState['locations'][number]> =
+    useCallback(
+      ({ item }) => {
+        return (
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Location', { id: item.id })}
+          >
+            <View style={styles.card}>
+              <Text>{`${new Date(item.timestamp).getHours()}:${new Date(
+                item.timestamp,
+              ).getMinutes()}:${new Date(item.timestamp).getSeconds()}`}</Text>
+              <Text>Longitude: {item.longitude}</Text>
+              <Text>Latitude: {item.latitude}</Text>
+            </View>
+          </TouchableOpacity>
+        );
+      },
+      [navigation],
+    );
 
   return (
     <View style={GStyles.screen}>
@@ -21,17 +56,7 @@ export default function HomeScreen() {
         keyExtractor={item => item.id.toString()}
         onRefresh={refresh}
         refreshing={false}
-        renderItem={({ item }) => {
-          return (
-            <View style={styles.card}>
-              <Text>{`${new Date(item.timestamp).getHours()}:${new Date(
-                item.timestamp,
-              ).getMinutes()}:${new Date(item.timestamp).getSeconds()}`}</Text>
-              <Text>{item.longitude}</Text>
-              <Text>{item.longitude}</Text>
-            </View>
-          );
-        }}
+        renderItem={renderItem}
       />
 
       <Text style={styles.status}>
@@ -41,17 +66,6 @@ export default function HomeScreen() {
         title="Settings"
         onPress={() => navigation.navigate('Settings')}
       />
-      {/* <Button
-        title={movementNotifyEnabled ? 'Enabled' : 'Disabled'}
-        onPress={toggleNotification}
-      />
-      <TextInput
-        value={trackingFrequency.toString()}
-        onChangeText={txt => {
-          if (!isNaN(Number(txt))) setTrackingFrequency(Number(txt));
-        }}
-        keyboardType="decimal-pad"
-      /> */}
     </View>
   );
 }
