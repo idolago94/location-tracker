@@ -11,10 +11,11 @@ import BackgroundService from 'react-native-background-actions';
 import { trackLocationInBackground, TrackOptions } from '../utils/background';
 import LocationsStorage, { LocationRow } from '../storage/locations';
 import { requestAlwaysLocationPermission } from '../utils/permissions';
+import { NotificationService } from '../services/NotificationService';
 
 export interface TrackerState {
   isTracking: boolean;
-  locations: Omit<LocationRow, 'no_motion_notified'>[];
+  locations: Pick<LocationRow, 'id' | 'latitude' | 'longitude' | 'timestamp'>[];
   error: string | undefined;
   refresh(): Promise<void>;
 }
@@ -49,6 +50,27 @@ const startBackgroundTracking = async ({
     parameters: {
       interval: 8000, // 8 seconds
       onGetPosition: (position: Geolocation.GeoPosition) => {
+        // Check movement for notification
+        LocationsStorage.getLastMoving().then(lastMovingLocation => {
+          if (lastMovingLocation && !lastMovingLocation.no_motion_notified) {
+            if (
+              lastMovingLocation.latitude === position.coords.latitude &&
+              lastMovingLocation.longitude === position.coords.longitude
+            ) {
+              const diffMinutes =
+                (Date.now() - lastMovingLocation.timestamp) / 1000 / 60;
+              if (diffMinutes >= 10) {
+                NotificationService.send({
+                  title: 'No Movement Detected',
+                  body: 'No movement has been detected for the last 10 minutes.',
+                });
+                LocationsStorage.markNoMotionNotified(lastMovingLocation.id);
+              }
+            }
+          }
+        });
+
+        // Save in DB
         LocationsStorage.insert({
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
@@ -70,7 +92,10 @@ const startBackgroundTracking = async ({
     },
   };
 
-  await BackgroundService.start<TrackOptions>(trackLocationInBackground, backgroundOptions);
+  await BackgroundService.start<TrackOptions>(
+    trackLocationInBackground,
+    backgroundOptions,
+  );
 };
 
 export function LocationTrackerProvider({ children }: BookingProviderProps) {
@@ -79,6 +104,8 @@ export function LocationTrackerProvider({ children }: BookingProviderProps) {
   const [error, setError] = useState<TrackerState['error']>();
 
   useEffect(() => {
+    NotificationService.initialize();
+
     LocationsStorage.getAll().then(rows => {
       setLocations(rows);
     });
