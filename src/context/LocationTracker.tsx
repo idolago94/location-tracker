@@ -86,8 +86,8 @@ const startBackgroundTracking = async ({
           }
         });
       },
-      onGetPositionError: () => {
-        onGetLocationError?.("Can't get device location");
+      onGetPositionError: (err: Geolocation.GeoError) => {
+        onGetLocationError?.(err.message);
       },
     },
   };
@@ -109,17 +109,25 @@ export function LocationTrackerProvider({ children }: BookingProviderProps) {
     LocationsStorage.getAll().then(rows => {
       setLocations(rows);
     });
+
     if (!BackgroundService.isRunning()) {
       startBackgroundTracking({
         onNewLocation: location => {
           setLocations(prev => [location, ...prev]);
         },
-        onGetLocationError: setError,
+        onGetLocationError: err => {
+          NotificationService.send({
+            title: 'Failed to get location',
+            body: err,
+          });
+        },
       })
-        .catch(err => setError(err.message))
         .then(() => {
           setError(undefined);
           setIsTracking(true);
+        })
+        .catch(err => {
+          setError(err.message);
         });
     } else {
       setIsTracking(true);

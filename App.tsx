@@ -37,7 +37,11 @@ function AppContent() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {error && <Text style={styles.error}>{error}</Text>}
+      {error && (
+        <View style={[styles.card, styles.errorBorder]}>
+          <Text style={styles.error}>{error}</Text>
+        </View>
+      )}
 
       <FlatList
         data={locations}
@@ -46,7 +50,7 @@ function AppContent() {
         refreshing={false}
         renderItem={({ item }) => {
           return (
-            <View style={styles.locationCard}>
+            <View style={styles.card}>
               <Text>{`${new Date(item.timestamp).getHours()}:${new Date(
                 item.timestamp,
               ).getMinutes()}:${new Date(item.timestamp).getSeconds()}`}</Text>
@@ -73,12 +77,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginVertical: 8,
   },
-  locationCard: {
+  card: {
     padding: 8,
     borderWidth: 1,
     borderRadius: 8,
     marginVertical: 4,
     marginHorizontal: 16,
+  },
+  errorBorder: {
+    borderColor: 'red'
   },
   error: {
     color: 'red',
