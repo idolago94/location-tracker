@@ -8,6 +8,7 @@
     <!-- Foreground Service (Android) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     
     <!-- Wake Lock -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -40,7 +41,7 @@
       <!-- Background Service for Location Tracking (Android Only) -->
       <service 
         android:name="com.asterinet.react.bgactions.RNBackgroundActionsTask"
-        android:foregroundServiceType="location" />
+        android:foregroundServiceType="dataSync" />
       
     </application>
 </manifest>
