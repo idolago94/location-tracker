@@ -15,7 +15,7 @@ export const trackLocationInBackground = async (
     onGetPosition = () => {},
     onGetPositionError = () => {},
   } = taskData;
-
+  
   await new Promise(async () => {
     while (BackgroundService.isRunning()) {
       // Fetch current location

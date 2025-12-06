@@ -8,8 +8,6 @@ export class NotificationService {
   private static readonly CHANNEL_ID = 'location_tracking_channel';
 
   static async initialize() {
-    console.log('NotificationService.initialize()');
-
     // Create Android notification channel
     await notifee.createChannel({
       id: this.CHANNEL_ID,
@@ -24,10 +22,8 @@ export class NotificationService {
     const settings = await notifee.requestPermission();
 
     if (settings.authorizationStatus === AuthorizationStatus.AUTHORIZED) {
-      console.log('Notification permission granted');
       return true;
     } else {
-      console.log('Notification permission denied');
       return false;
     }
   }
@@ -42,7 +38,7 @@ export class NotificationService {
       ios: {
         sound: 'default',
       },
-      ...params
+      ...params,
     });
   }
 }

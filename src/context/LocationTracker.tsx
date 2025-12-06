@@ -12,12 +12,17 @@ import { trackLocationInBackground, TrackOptions } from '../utils/background';
 import LocationsStorage, { LocationRow } from '../storage/locations';
 import { requestAlwaysLocationPermission } from '../utils/permissions';
 import { NotificationService } from '../services/NotificationService';
+import {
+  getTrackingFrequency,
+  isMovementNotifyEnabled,
+} from '../storage/settings';
 
 export interface TrackerState {
   isTracking: boolean;
   locations: Pick<LocationRow, 'id' | 'latitude' | 'longitude' | 'timestamp'>[];
   error: string | undefined;
   refresh(): Promise<void>;
+  restart(delay: number): Promise<void>;
 }
 
 const LocationTrackerContext = createContext<TrackerState | undefined>(
@@ -37,6 +42,8 @@ const startBackgroundTracking = async ({
 }) => {
   await requestAlwaysLocationPermission();
 
+  const interval = getTrackingFrequency();
+
   const backgroundOptions = {
     taskName: 'Location Tracker',
     taskTitle: 'Tracking Location',
@@ -48,27 +55,30 @@ const startBackgroundTracking = async ({
     color: '#ff00ff',
     linkingURI: 'locationtracker://tracking',
     parameters: {
-      interval: 8000, // 8 seconds
+      interval: interval * 1000, // seconds to miliseconds
       onGetPosition: (position: Geolocation.GeoPosition) => {
         // Check movement for notification
-        LocationsStorage.getLastMoving().then(lastMovingLocation => {
-          if (lastMovingLocation && !lastMovingLocation.no_motion_notified) {
-            if (
-              lastMovingLocation.latitude === position.coords.latitude &&
-              lastMovingLocation.longitude === position.coords.longitude
-            ) {
-              const diffMinutes =
-                (Date.now() - lastMovingLocation.timestamp) / 1000 / 60;
-              if (diffMinutes >= 10) {
-                NotificationService.send({
-                  title: 'No Movement Detected',
-                  body: 'No movement has been detected for the last 10 minutes.',
-                });
-                LocationsStorage.markNoMotionNotified(lastMovingLocation.id);
+        const sendMovementNotification = isMovementNotifyEnabled();
+        if (sendMovementNotification) {
+          LocationsStorage.getLastMoving().then(lastMovingLocation => {
+            if (lastMovingLocation && !lastMovingLocation.no_motion_notified) {
+              if (
+                lastMovingLocation.latitude === position.coords.latitude &&
+                lastMovingLocation.longitude === position.coords.longitude
+              ) {
+                const diffMinutes =
+                  (Date.now() - lastMovingLocation.timestamp) / 1000 / 60;
+                if (diffMinutes >= 10) {
+                  NotificationService.send({
+                    title: 'No Movement Detected',
+                    body: 'No movement has been detected for the last 10 minutes.',
+                  });
+                  LocationsStorage.markNoMotionNotified(lastMovingLocation.id);
+                }
               }
             }
-          }
-        });
+          });
+        }
 
         // Save in DB
         LocationsStorage.insert({
@@ -104,8 +114,6 @@ export function LocationTrackerProvider({ children }: BookingProviderProps) {
   const [error, setError] = useState<TrackerState['error']>();
 
   useEffect(() => {
-    NotificationService.initialize();
-
     LocationsStorage.getAll().then(rows => {
       setLocations(rows);
     });
@@ -128,6 +136,7 @@ export function LocationTrackerProvider({ children }: BookingProviderProps) {
         })
         .catch(err => {
           setError(err.message);
+          setIsTracking(false);
         });
     } else {
       setIsTracking(true);
@@ -146,11 +155,39 @@ export function LocationTrackerProvider({ children }: BookingProviderProps) {
     setLocations(rows);
   }, []);
 
+  const restart = useCallback(async (delay: number) => {
+    if (BackgroundService.isRunning()) {
+      await BackgroundService.stop();
+      setTimeout(() => {
+        startBackgroundTracking({
+          onNewLocation: location => {
+            setLocations(prev => [location, ...prev]);
+          },
+          onGetLocationError: err => {
+            NotificationService.send({
+              title: 'Failed to get location',
+              body: err,
+            });
+          },
+        })
+          .then(() => {
+            setError(undefined);
+            setIsTracking(true);
+          })
+          .catch(err => {
+            setError(err.message);
+            setIsTracking(false);
+          });
+      }, delay);
+    }
+  }, []);
+
   const value: TrackerState = {
     isTracking,
     locations,
     error,
     refresh,
+    restart,
   };
 
   return (
