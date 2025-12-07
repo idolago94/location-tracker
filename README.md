@@ -1,97 +1,309 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# LocationTracker
 
-# Getting Started
+A React Native mobile application for continuous background GPS location tracking with persistent storage and notification support.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## Overview
 
-## Step 1: Start Metro
+LocationTracker is a cross-platform (iOS/Android) mobile app that tracks device location in the background, stores location history in a local SQLite database, and provides notifications for movement detection. The app allows users to view, edit, delete, and share tracked locations.
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+## Architecture
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+### Project Structure
 
-```sh
-# Using npm
-npm start
-
-# OR using Yarn
-yarn start
+```
+LocationTracker/
+├── src/
+│   ├── components/          # Reusable UI components
+│   │   └── Input.tsx        # Input component with label
+│   ├── context/            # Global state management
+│   │   └── LocationTracker.tsx  # Location tracking context & service
+│   ├── navigation/         # Navigation configuration
+│   │   └── types.ts        # TypeScript navigation types
+│   ├── screens/            # Application screens
+│   │   ├── HomeScreen.tsx      # Main tracking screen
+│   │   ├── LocationScreen.tsx  # Location details & editing
+│   │   └── SettingsScreen.tsx  # App settings
+│   ├── services/           # Background services
+│   │   └── NotificationService.ts  # Notification handling
+│   ├── storage/            # Data persistence
+│   │   ├── locations.ts    # SQLite location storage
+│   │   └── settings.ts     # MMKV settings storage
+│   ├── styles/             # Styling
+│   │   └── global.ts       # Global stylesheet
+│   └── utils/              # Utility functions
+│       ├── background.ts   # Background tracking logic
+│       ├── permissions.ts  # Permission requests
+│       └── links.ts        # Map and sharing utilities
+├── android/                # Android native code
+├── ios/                    # iOS native code
+├── App.tsx                 # Root app component
+└── index.js                # Entry point with notification listeners
 ```
 
-## Step 2: Build and run your app
+### Key Technologies
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+- **React Native 0.82.1** - Cross-platform mobile framework
+- **TypeScript 5.8.3** - Type safety
+- **React Navigation 7** - Screen navigation
+- **react-native-geolocation-service** - GPS location access
+- **react-native-background-actions** - Background service execution
+- **react-native-nitro-sqlite** - SQLite database for location storage
+- **react-native-mmkv** - Key-value storage for settings
+- **@notifee/react-native** - Cross-platform notifications
 
-### Android
+### Architecture Pattern
 
-```sh
-# Using npm
-npm run android
+The app uses **React Context API** for global state management:
 
-# OR using Yarn
-yarn android
+- `LocationTrackerProvider` wraps the app and provides tracking state
+- `useLocationTracker()` hook allows components to subscribe to state changes
+- Background service runs independently and updates context state
+- SQLite database persists location data
+- MMKV stores user preferences (tracking frequency, notification settings)
+
+### Data Flow
+
 ```
+User Action (Start/Stop)
+    ↓
+HomeScreen Component
+    ↓
+useLocationTracker() Hook
+    ↓
+LocationTrackerContext
+    ↓
+Background Service (trackLocationInBackground)
+    ↓
+GPS Position Fetch (every N seconds)
+    ↓
+SQLite Storage + Movement Detection
+    ↓
+Context State Update
+    ↓
+UI Re-render
+```
+
+### Database Schema
+
+**SQLite Table: `locations`**
+```sql
+CREATE TABLE locations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  latitude REAL NOT NULL,
+  longitude REAL NOT NULL,
+  timestamp INTEGER NOT NULL,
+  no_motion_notified INTEGER DEFAULT 0,
+  is_moving INTEGER DEFAULT 0
+);
+```
+
+## Features
+
+1. **Background Location Tracking**
+   - Continuous GPS tracking with configurable intervals (default: 8 seconds)
+   - High accuracy mode with 15-second timeout
+   - Runs as foreground service with persistent notification
+
+2. **Location Management**
+   - View all tracked locations with timestamps
+   - Edit latitude/longitude values
+   - Delete individual location entries
+   - Pull-to-refresh to reload locations
+
+3. **Map Integration**
+   - Open locations in native maps (iOS Maps / Google Maps)
+   - Share location via native share API
+
+4. **Notifications**
+   - No-movement detection (after 10 minutes of no location change)
+   - Foreground service notification
+   - Tap notification to stop tracking
+
+5. **Settings**
+   - Toggle no-movement notifications
+   - Configure tracking frequency (seconds, changes restart background service automatically)
+
+6. **Movement Detection**
+   - Automatic detection of device movement
+   - Flags locations as moving/stationary
+
+## Prerequisites
+
+- **Node.js** >= 20
+- **npm** or **yarn**
+- **Xcode** (for iOS development) - macOS only
+- **Android Studio** (for Android development)
+- **CocoaPods** (for iOS dependencies)
+
+### iOS Requirements
+
+- macOS with Xcode 14 or later
+- iOS 13.0 or later
+- CocoaPods installed: `sudo gem install cocoapods`
+
+### Android Requirements
+
+- Android Studio with Android SDK
+- Android SDK Platform 23 or later
+- Android Build Tools
+- Android Emulator or physical device
+
+## Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/idolago94/location-tracker.git
+   cd location-tracker
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Install iOS dependencies (macOS only)**
+   ```bash
+   cd ios
+   pod install
+   cd ..
+   ```
+
+## Running the App
 
 ### iOS
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+1. **Start Metro bundler**
+   ```bash
+   npm start
+   ```
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+2. **Run on iOS simulator**
+   ```bash
+   npm run ios
+   ```
 
-```sh
-bundle install
+3. **Run on specific iOS simulator**
+   ```bash
+   npm run ios -- --simulator="iPhone 15 Pro"
+   ```
+
+4. **Run on physical iOS device**
+   - Open `ios/LocationTracker.xcworkspace` in Xcode
+   - Select your device from the device menu
+   - Configure signing with your Apple Developer account
+   - Click the Run button or press `Cmd + R`
+
+### Android
+
+1. **Start Metro bundler**
+   ```bash
+   npm start
+   ```
+
+2. **Run on Android emulator or device**
+   ```bash
+   npm run android
+   ```
+
+3. **Build release APK**
+   ```bash
+   cd android
+   ./gradlew assembleRelease
+   ```
+   APK will be at: `android/app/build/outputs/apk/release/app-release.apk`
+
+### Troubleshooting
+
+**Metro bundler issues:**
+```bash
+npm start -- --reset-cache
 ```
 
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
+**iOS build issues:**
+```bash
+cd ios
+pod deintegrate
+pod install
+cd ..
 ```
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
+**Android build issues:**
+```bash
+cd android
+./gradlew clean
+cd ..
 ```
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+## Permissions
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+### iOS Permissions (Info.plist)
 
-## Step 3: Modify your app
+The app requires the following iOS permissions:
 
-Now that you have successfully run the app, let's make changes!
+- `NSLocationWhenInUseUsageDescription` - Location access while using app
+- `NSLocationAlwaysAndWhenInUseUsageDescription` - Background location access
+- `NSLocationAlwaysUsageDescription` - Always location access
+- `UIBackgroundModes` - Background location updates
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+### Android Permissions (AndroidManifest.xml)
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+The app requires the following Android permissions:
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+- `ACCESS_COARSE_LOCATION` - Coarse location access
+- `ACCESS_FINE_LOCATION` - Fine location access
+- `ACCESS_BACKGROUND_LOCATION` - Background location (Android 10+)
+- `FOREGROUND_SERVICE` - Foreground service capability
+- `FOREGROUND_SERVICE_LOCATION` - Location foreground service
+- `FOREGROUND_SERVICE_DATA_SYNC` - Data sync foreground service
+- `WAKE_LOCK` - Keep device awake during tracking
+- `POST_NOTIFICATIONS` - Send notifications (Android 13+)
+- `VIBRATE` - Vibration for notifications
+- `INTERNET` - Network access
 
-## Congratulations! :tada:
+## Known Limitations
 
-You've successfully run and modified your React Native App. :partying_face:
+1. **Battery Consumption**
+   - Continuous GPS polling (default: every 8 seconds) can significantly drain battery
+   - Background service keeps device awake
+   - High accuracy mode increases power usage
 
-### Now what?
+2. **Movement Detection**
+   - Uses exact coordinate comparison instead of distance-based detection
+   - May incorrectly flag locations as "not moving" due to GPS drift
+   - No configurable sensitivity threshold
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+3. **No State Persistence**
+   - App state (isTracking, error) is not persisted across app restarts
+   - Background service stops when app is force-closed (depends on OS behavior)
+   - Users must manually restart tracking after app restart
 
-# Troubleshooting
+4. **Fixed Notification Threshold**
+   - No-movement notification is hardcoded to 10 minutes
+   - Cannot be configured by the user
 
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+5. **Database Growth**
+   - Location records grow indefinitely
+   - No automatic cleanup or archival
+   - Could impact performance with large datasets (thousands of locations)
 
-# Learn More
+6. **No Data Export**
+   - No built-in export functionality (CSV, JSON, GPX)
+   - Locations can only be shared individually
 
-To learn more about React Native, take a look at the following resources:
+7. **Platform-Specific Limitations**
+   - **iOS**: Background tracking may be paused by system during low power mode
+   - **iOS**: Background service may stop after extended periods (OS-dependent)
+   - **Android**: Aggressive battery optimization may kill background service on some devices (Xiaomi, Huawei, etc.)
+   - **Android**: Requires disabling battery optimization for reliable tracking
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+8. **No Location History Visualization**
+   - No map view showing tracked route
+   - No timeline or date filtering
+
+9. **Single User Support**
+   - No user accounts or cloud sync
+   - All data stored locally on device
+
+10. **No Geofencing**
+    - No alerts for entering/leaving specific areas
+    - No location-based triggers
