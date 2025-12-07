@@ -15,7 +15,8 @@ import { useCallback } from 'react';
 
 export default function HomeScreen() {
   const navigation = useNavigation<RootStackNavigationProp>();
-  const { error, isTracking, locations, refresh, start, stop } = useLocationTracker();
+  const { error, isTracking, locations, refresh, start, stop } =
+    useLocationTracker();
 
   useFocusEffect(
     useCallback(() => {
@@ -53,12 +54,20 @@ export default function HomeScreen() {
 
       <View style={styles.trackingIndicatorView}>
         {isTracking ? (
-          <TouchableOpacity style={[styles.trackingIndicatorWrap, styles.trackingColor]} onPress={stop}>
-            <Text style={[styles.indicatorText, styles.trackingColor]}>Tracking...</Text>
+          <TouchableOpacity
+            style={[styles.trackingIndicatorWrap, styles.trackingColor]}
+            onPress={stop}
+          >
+            <Text style={[styles.indicatorText, styles.trackingColor]}>
+              Tracking...
+            </Text>
             <Text>Press to stop tracking</Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity style={styles.trackingIndicatorWrap} onPress={start}>
+          <TouchableOpacity
+            style={styles.trackingIndicatorWrap}
+            onPress={start}
+          >
             <Text style={styles.indicatorText}>Start Tracking</Text>
           </TouchableOpacity>
         )}
@@ -119,7 +128,7 @@ const styles = StyleSheet.create({
   },
   trackingColor: {
     borderColor: 'blue',
-    color: 'blue'
+    color: 'blue',
   },
   indicatorText: {
     fontWeight: 700,

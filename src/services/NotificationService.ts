@@ -34,6 +34,9 @@ export class NotificationService {
         channelId: this.CHANNEL_ID,
         importance: AndroidImportance.HIGH,
         sound: 'default',
+        pressAction: {
+          id: 'default'
+        }
       },
       ios: {
         sound: 'default',

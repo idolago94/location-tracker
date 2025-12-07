@@ -49,7 +49,7 @@ const startBackgroundTracking = async ({
   const backgroundOptions = {
     taskName: 'Location Tracker',
     taskTitle: 'Tracking Location',
-    taskDesc: 'Fetching location every 8 seconds',
+    taskDesc: `Fetching location every ${interval} seconds`,
     taskIcon: {
       name: 'ic_launcher',
       type: 'mipmap',
@@ -123,29 +123,10 @@ export function LocationTrackerProvider({ children }: BookingProviderProps) {
     if (BackgroundService.isRunning()) {
       setIsTracking(true);
     }
-    // if (!BackgroundService.isRunning()) {
-    //   startBackgroundTracking({
-    //     onNewLocation: location => {
-    //       setLocations(prev => [location, ...prev]);
-    //     },
-    //     onGetLocationError: err => {
-    //       NotificationService.send({
-    //         title: 'Failed to get location',
-    //         body: err,
-    //       });
-    //     },
-    //   })
-    //     .then(() => {
-    //       setError(undefined);
-    //       setIsTracking(true);
-    //     })
-    //     .catch(err => {
-    //       setError(err.message);
-    //       setIsTracking(false);
-    //     });
-    // } else {
-    //   setIsTracking(true);
-    // }
+
+    BackgroundService.addListener('expiration', () => {
+      setIsTracking(false);
+    })
 
     // Cleanup on unmount
     return () => {

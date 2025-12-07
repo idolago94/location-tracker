@@ -1,12 +1,4 @@
-import {
-  Alert,
-  Button,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Alert, StyleSheet, Switch, Text, View } from 'react-native';
 import {
   useMovementNotification,
   useTrackingFrequency,
@@ -35,11 +27,13 @@ export default function SettingsScreen() {
   return (
     <View style={[GStyles.screen, styles.container]}>
       <View style={styles.toggleContainer}>
-        <Text style={styles.notificationToggleLabel}>Send not movement notification</Text>
+        <Text style={styles.notificationToggleLabel}>
+          Send not movement notification
+        </Text>
         <Switch value={movementNotifyEnabled} onChange={toggleNotification} />
       </View>
       <Input
-        label="Tracking frequency"
+        label="Tracking frequency (seconds)"
         defaultValue={trackingFrequency.toString()}
         onEndEditing={e => {
           const txt = e.nativeEvent.text;
@@ -61,6 +55,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   notificationToggleLabel: {
-    flex: 1
-  }
+    flex: 1,
+  },
 });
