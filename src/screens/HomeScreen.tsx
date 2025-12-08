@@ -1,4 +1,4 @@
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { TrackerState, useLocationTracker } from '../context/LocationTracker';
 import {
   Button,
@@ -15,14 +15,16 @@ import { useCallback } from 'react';
 
 export default function HomeScreen() {
   const navigation = useNavigation<RootStackNavigationProp>();
-  const { error, isTracking, locations, refresh, start, stop } =
-    useLocationTracker();
-
-  useFocusEffect(
-    useCallback(() => {
-      refresh();
-    }, [refresh]),
-  );
+  const {
+    error,
+    isTracking,
+    locations,
+    refresh,
+    start,
+    stop,
+    loadMore,
+    amount,
+  } = useLocationTracker();
 
   const renderItem: ListRenderItem<TrackerState['locations'][number]> =
     useCallback(
@@ -79,12 +81,18 @@ export default function HomeScreen() {
         onRefresh={refresh}
         refreshing={false}
         renderItem={renderItem}
+        onEndReached={loadMore}
       />
 
       <Button
         title="Settings"
         onPress={() => navigation.navigate('Settings')}
       />
+      <View style={styles.paginationIndicator}>
+        <Text>
+          {locations.length} / {amount}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -134,4 +142,7 @@ const styles = StyleSheet.create({
     fontWeight: 700,
     fontSize: 24,
   },
+  paginationIndicator: {
+    alignItems: 'center'
+  }
 });

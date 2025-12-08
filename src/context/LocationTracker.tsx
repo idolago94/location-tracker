@@ -5,6 +5,7 @@ import React, {
   ReactNode,
   useEffect,
   useCallback,
+  useReducer,
 } from 'react';
 import Geolocation from 'react-native-geolocation-service';
 import BackgroundService from 'react-native-background-actions';
@@ -24,7 +25,9 @@ export interface TrackerState {
   refresh(): Promise<void>;
   restart(delay: number): Promise<void>;
   start(): void;
-  stop(): void
+  stop(): void;
+  loadMore(): void;
+  amount: number;
 }
 
 const LocationTrackerContext = createContext<TrackerState | undefined>(
@@ -110,23 +113,37 @@ const startBackgroundTracking = async ({
   );
 };
 
+const LOCATIONS_LIST_PAGINATION = 10;
+
 export function LocationTrackerProvider({ children }: BookingProviderProps) {
   const [locations, setLocations] = useState<TrackerState['locations']>([]);
   const [isTracking, setIsTracking] = useState(false);
   const [error, setError] = useState<TrackerState['error']>();
 
-  useEffect(() => {
-    LocationsStorage.getAll().then(rows => {
-      setLocations(rows);
-    });
+  const [page, nextPage] = useReducer(prev => prev + 1, 1);
+  const [amount, setAmount] = useState<number>(0);
 
+  useEffect(() => {
+    LocationsStorage.getAmount().then(setAmount);
+  }, [locations]);
+
+  useEffect(() => {
+    LocationsStorage.get({
+      limit: LOCATIONS_LIST_PAGINATION,
+      offset: (page - 1) * LOCATIONS_LIST_PAGINATION,
+    }).then(rows => {
+      setLocations(prev => [...prev, ...rows]);
+    });
+  }, [page]);
+
+  useEffect(() => {
     if (BackgroundService.isRunning()) {
       setIsTracking(true);
     }
 
     BackgroundService.addListener('expiration', () => {
       setIsTracking(false);
-    })
+    });
 
     // Cleanup on unmount
     return () => {
@@ -137,9 +154,11 @@ export function LocationTrackerProvider({ children }: BookingProviderProps) {
   }, []);
 
   const refresh = useCallback(async () => {
-    const rows = await LocationsStorage.getAll();
-    setLocations(rows);
-  }, []);
+    LocationsStorage.get({
+      limit: page * LOCATIONS_LIST_PAGINATION,
+      offset: 0,
+    }).then(setLocations);
+  }, [page]);
 
   const start = useCallback(() => {
     if (!BackgroundService.isRunning()) {
@@ -167,7 +186,7 @@ export function LocationTrackerProvider({ children }: BookingProviderProps) {
 
   const stop = useCallback(() => {
     BackgroundService.stop().then(() => setIsTracking(false));
-  }, [])
+  }, []);
 
   const restart = useCallback(
     async (delay: number) => {
@@ -189,6 +208,8 @@ export function LocationTrackerProvider({ children }: BookingProviderProps) {
     restart,
     start,
     stop,
+    loadMore: nextPage,
+    amount,
   };
 
   return (

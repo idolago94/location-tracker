@@ -76,6 +76,46 @@ class LocationsStorage {
     })) as LocationRow[];
   }
 
+  async getAmount() {
+    const result = await this.db.execute(
+      `SELECT COUNT(*) AS count FROM locations;`,
+    );
+
+    if (result.rows && result.rows._array && result.rows._array.length) {
+      const row = result.rows._array[0];
+      return Number(row.count);
+    }
+    return 0;
+  }
+
+  async get({
+    limit,
+    offset,
+  }: {
+    limit: number;
+    offset: number;
+  }): Promise<LocationRow[]> {
+    const result = await this.db.execute(
+      `
+      SELECT *
+      FROM locations
+      ORDER BY timestamp DESC
+      LIMIT ? OFFSET ?;
+    `,
+      [limit, offset],
+    );
+
+    const locationRows = result.rows?._array ?? [];
+    return locationRows.map((r: any) => ({
+      id: Number(r.id),
+      latitude: Number(r.latitude),
+      longitude: Number(r.longitude),
+      timestamp: Number(r.timestamp),
+      no_motion_notified: Number(r.no_motion_notified),
+      is_moving: Number(r.is_moving),
+    })) as LocationRow[];
+  }
+
   async getById(id: number) {
     const result = await this.db.execute(
       `
